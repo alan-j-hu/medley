@@ -6,23 +6,9 @@
   </head>
   <body>
     <script type='module'>
-      import init, { id, run } from './pkg/medley.js';
+      import init from './pkg/medley.js';
 
-      async function go() {
-        await init();
-        const idResult = id(1);
-        console.log(`1 = ${idResult}`);
-        if(idResult !== 1) {
-          throw new Error("wasm identity doesn't work!");
-        }
-        const runResult = await run();
-        console.log(`3 = ${runResult}`);
-        if(runResult !== 3) {
-          throw new Error("wasm run doesn't work!");
-        }
-      }
-
-      go();
+      init();
     </script>
   </body>
 </html>

@@ -1,18 +1,19 @@
-use js_sys::{Function, Object, Promise, Reflect, WebAssembly};
+use js_sys::{Function, Object, Reflect, WebAssembly};
+use yew::prelude::*;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
-use wasm_bindgen_futures::{future_to_promise, JsFuture};
+use wasm_bindgen_futures::{spawn_local, JsFuture};
 
+mod ast;
 mod emit;
+mod view;
 
-#[wasm_bindgen]
-pub fn id(x: i32) -> i32 {
-    x
-}
-
-#[wasm_bindgen]
-pub fn run() -> Promise {
-    future_to_promise(async { go(&emit::emit()).await })
+#[wasm_bindgen(start)]
+pub fn run() {
+    spawn_local(async {
+        let _three = go(&emit::emit()).await;
+    });
+    App::<view::View>::new().mount_to_body();
 }
 
 async fn go(bytes: &[u8]) -> Result<JsValue, JsValue> {

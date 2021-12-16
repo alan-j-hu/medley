@@ -1,0 +1,14 @@
+[package]
+name = "medley-ide"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+im = "15.0.0"
+winit = "0.25.0"
+
+[dependencies.druid]
+version = "0.7.0"
+features = [
+    "im",
+]

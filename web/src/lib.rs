@@ -1,4 +1,5 @@
 use druid::{AppLauncher, Data, LocalizedString, Scale, WindowDesc};
+use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
@@ -12,13 +13,22 @@ enum Operator {
     Expr,
 }
 
-const EMPTY: &'static [Sort] = &[];
+const EMPTY_SORT: &'static [Sort] = &[];
+const EMPTY_SYMBOL: &'static [medley_ide::view::Symbol] = &[];
 
 impl medley_ide::model::Operator for Operator {
     type Sort = Sort;
 
     fn arity(self: &Self) -> (&'static [Self::Sort], Self::Sort) {
-        (EMPTY, Sort::Expr)
+        (EMPTY_SORT, Sort::Expr)
+    }
+}
+
+struct Syntax;
+
+impl medley_ide::view::Syntax<Operator> for Syntax {
+    fn production(&self, _: &Operator) -> &'static [medley_ide::view::Symbol] {
+        EMPTY_SYMBOL
     }
 }
 
@@ -33,12 +43,12 @@ pub fn main() {
         .dyn_into::<web_sys::HtmlCanvasElement>()
         .unwrap();
     let scale = Scale::new(1.0, 1.0);
-    let window = WindowDesc::new(medley_ide::build_root_widget::<Operator>)
+    let window = WindowDesc::new(medley_ide::build_root_widget::<Operator, Syntax>)
         .title(LocalizedString::new("Medley"))
         .window_size(scale.px_to_dp_xy(canvas.width(), canvas.height()))
         .resizable(true);
 
     AppLauncher::with_window(window)
-        .launch(std::default::Default::default())
+        .launch(medley_ide::model::Editor::new())
         .expect("Could not launch application.");
 }

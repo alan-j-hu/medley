@@ -2,11 +2,8 @@ use crate::model;
 use druid::{Data, RenderContext};
 use std::vec::Vec;
 
-#[derive(Clone, Data)]
-pub struct GlobalData {}
-
 pub struct Editor<O, S> {
-    snippets: Vec<druid::WidgetPod<(GlobalData, model::Expr<O>), Block<O, S>>>,
+    snippets: Vec<druid::WidgetPod<model::Expr<O>, Block<O, S>>>,
 }
 
 impl<O, S> Editor<O, S> {
@@ -77,12 +74,12 @@ pub trait Syntax<O> {
 }
 
 pub struct Block<O, S> {
-    children: Vec<druid::WidgetPod<(GlobalData, Option<model::Expr<O>>), Hole<O, S>>>,
+    children: Vec<druid::WidgetPod<Option<model::Expr<O>>, Hole<O, S>>>,
     labels: Vec<druid::widget::Label<()>>,
     syntax: S,
 }
 
-impl<O, S> druid::Widget<(GlobalData, model::Expr<O>)> for Block<O, S>
+impl<O, S> druid::Widget<model::Expr<O>> for Block<O, S>
 where
     O: model::Operator,
     S: Syntax<O>,
@@ -91,7 +88,7 @@ where
         &mut self,
         ctx: &mut druid::EventCtx<'_, '_>,
         event: &druid::Event,
-        data: &mut (GlobalData, model::Expr<O>),
+        data: &mut model::Expr<O>,
         env: &druid::Env,
     ) {
     }
@@ -100,7 +97,7 @@ where
         &mut self,
         ctx: &mut druid::LifeCycleCtx<'_, '_>,
         event: &druid::LifeCycle,
-        data: &(GlobalData, model::Expr<O>),
+        data: &model::Expr<O>,
         env: &druid::Env,
     ) {
     }
@@ -108,8 +105,8 @@ where
     fn update(
         &mut self,
         ctx: &mut druid::UpdateCtx<'_, '_>,
-        old_data: &(GlobalData, model::Expr<O>),
-        data: &(GlobalData, model::Expr<O>),
+        old_data: &model::Expr<O>,
+        data: &model::Expr<O>,
         env: &druid::Env,
     ) {
     }
@@ -118,19 +115,16 @@ where
         &mut self,
         ctx: &mut druid::LayoutCtx<'_, '_>,
         bc: &druid::BoxConstraints,
-        (gd, expr): &(GlobalData, model::Expr<O>),
+        expr: &model::Expr<O>,
         env: &druid::Env,
     ) -> druid::Size {
         let (width, height) = self.syntax.production(expr.operator()).iter().fold(
             (0.0, 0.0),
             |(width, height), symbol| {
                 let size = match symbol {
-                    Symbol::Child(i) => self.children[*i].layout(
-                        ctx,
-                        bc,
-                        &(gd.clone(), expr.children()[*i].clone()),
-                        env,
-                    ),
+                    Symbol::Child(i) => {
+                        self.children[*i].layout(ctx, bc, &expr.children()[*i], env)
+                    }
                     Symbol::Label(_) => druid::Size::new(0.0, 0.0),
                 };
                 (
@@ -149,7 +143,7 @@ where
     fn paint(
         &mut self,
         ctx: &mut druid::PaintCtx<'_, '_, '_>,
-        (gd, expr): &(GlobalData, model::Expr<O>),
+        expr: &model::Expr<O>,
         env: &druid::Env,
     ) {
         let size = ctx.size();
@@ -158,7 +152,7 @@ where
             .to_rounded_rect(2.0);
         ctx.fill(rect, &druid::Color::rgb8(255, 0, 0));
         for (i, child) in self.children.iter_mut().enumerate() {
-            child.paint(ctx, &(gd.clone(), expr.children().clone()[i].clone()), env)
+            child.paint(ctx, &expr.children().clone()[i], env)
         }
         for label in &mut self.labels {
             label.paint(ctx, &(), env)
@@ -167,11 +161,11 @@ where
 }
 
 pub struct Hole<O, S> {
-    block: druid::WidgetPod<(GlobalData, model::Expr<O>), Block<O, S>>,
+    block: druid::WidgetPod<model::Expr<O>, Block<O, S>>,
     cached_size: Option<druid::Size>,
 }
 
-impl<O, S> druid::Widget<(GlobalData, Option<model::Expr<O>>)> for Hole<O, S>
+impl<O, S> druid::Widget<Option<model::Expr<O>>> for Hole<O, S>
 where
     O: model::Operator,
     S: Syntax<O>,
@@ -180,7 +174,7 @@ where
         &mut self,
         ctx: &mut druid::EventCtx<'_, '_>,
         event: &druid::Event,
-        data: &mut (GlobalData, Option<model::Expr<O>>),
+        data: &mut Option<model::Expr<O>>,
         env: &druid::Env,
     ) {
     }
@@ -189,7 +183,7 @@ where
         &mut self,
         ctx: &mut druid::LifeCycleCtx<'_, '_>,
         event: &druid::LifeCycle,
-        data: &(GlobalData, Option<model::Expr<O>>),
+        data: &Option<model::Expr<O>>,
         env: &druid::Env,
     ) {
     }
@@ -197,8 +191,8 @@ where
     fn update(
         &mut self,
         ctx: &mut druid::UpdateCtx<'_, '_>,
-        old_data: &(GlobalData, Option<model::Expr<O>>),
-        data: &(GlobalData, Option<model::Expr<O>>),
+        old_data: &Option<model::Expr<O>>,
+        data: &Option<model::Expr<O>>,
         env: &druid::Env,
     ) {
     }
@@ -207,7 +201,7 @@ where
         &mut self,
         ctx: &mut druid::LayoutCtx<'_, '_>,
         bc: &druid::BoxConstraints,
-        (gd, expr): &(GlobalData, Option<model::Expr<O>>),
+        expr: &Option<model::Expr<O>>,
         env: &druid::Env,
     ) -> druid::Size {
         match self.cached_size {
@@ -215,7 +209,7 @@ where
             None => {
                 let size = match expr {
                     None => druid::Size::new(0.0, 0.0),
-                    Some(expr) => self.block.layout(ctx, bc, &(gd.clone(), expr.clone()), env),
+                    Some(expr) => self.block.layout(ctx, bc, expr, env),
                 };
                 self.cached_size = Some(size);
                 size
@@ -226,12 +220,12 @@ where
     fn paint(
         &mut self,
         ctx: &mut druid::PaintCtx<'_, '_, '_>,
-        (gd, expr): &(GlobalData, Option<model::Expr<O>>),
+        expr: &Option<model::Expr<O>>,
         env: &druid::Env,
     ) {
         match expr {
             None => {}
-            Some(expr) => self.block.paint(ctx, &(gd.clone(), expr.clone()), env),
+            Some(expr) => self.block.paint(ctx, expr, env),
         }
     }
 }
